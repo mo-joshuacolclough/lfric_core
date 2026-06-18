@@ -192,6 +192,10 @@ subroutine initialise(self, name, table_len)
   end if
 
   ! Create the hash table for the inventory
+  if (allocated(self%paired_object_list)) then
+    deallocate(self%paired_object_list)
+  end if
+
   allocate(self%paired_object_list(0:self%table_len-1))
   do i = 0, self%table_len-1
     self%paired_object_list(i) = linked_list_type()
