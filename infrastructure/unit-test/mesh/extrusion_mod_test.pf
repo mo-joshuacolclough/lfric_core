@@ -17,7 +17,7 @@ module extrusion_mod_test
             test_user_missing_top, test_user_missing_both,             &
             test_uniform, test_shifted_uniform, test_quadratic,        &
             test_shifted_quadratic, test_geometric, test_shifted_geometric, &
-            test_with_level_above_top
+            test_extra_level
 
 contains
 
@@ -360,11 +360,11 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   @test
-  subroutine test_with_level_above_top()
+  subroutine test_extra_level()
 
     use extrusion_mod, only : uniform_extrusion_type, &
-                              extrusion_with_level_above_top_type, &
-                              PRIME_EXTRUSION, WITH_LEVEL_ABOVE_TOP
+                              extra_level_extrusion_type, &
+                              PRIME_EXTRUSION, EXTRA_LEVEL
 
     implicit none
 
@@ -374,25 +374,25 @@ contains
                                     0.6_r_def, 0.8_r_def, 1.0_r_def, 1.2_r_def]
     real(r_def),    parameter :: tolerance = 0.001_r_def
 
-    type(uniform_extrusion_type)              :: uniform_extrusion
-    type(extrusion_with_level_above_top_type) :: unit_under_test
-    real(r_def)                               :: eta(0:layers)
+    type(uniform_extrusion_type)     :: uniform_extrusion
+    type(extra_level_extrusion_type) :: unit_under_test
+    real(r_def)                      :: eta(0:layers)
 
     uniform_extrusion = uniform_extrusion_type( 1.0_r_def, 2.0_r_def, layers - 1, &
                                                 PRIME_EXTRUSION )
-    unit_under_test = extrusion_with_level_above_top_type(uniform_extrusion)
+    unit_under_test = extra_level_extrusion_type(uniform_extrusion)
 
     ! Test the constructor.
     !
     @assertEqual( 1.0_r_def, unit_under_test%get_atmosphere_bottom() )
     @assertEqual( 2.0_r_def, unit_under_test%get_atmosphere_top() )
     @assertEqual( layers,    unit_under_test%get_number_of_layers() )
-    @assertEqual( WITH_LEVEL_ABOVE_TOP, unit_under_test%get_id() )
+    @assertEqual( EXTRA_LEVEL, unit_under_test%get_id() )
 
     ! Now test the extrusion
     call unit_under_test%extrude( eta )
     @assertEqual( expected, eta, tolerance )
 
-  end subroutine test_with_level_above_top
+  end subroutine test_extra_level
 
 end module extrusion_mod_test
