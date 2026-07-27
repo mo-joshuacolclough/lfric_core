@@ -32,6 +32,7 @@ module extrusion_mod
   integer(i_def), parameter, public :: TWOD = 6424
   integer(i_def), parameter, public :: SHIFTED = 1298
   integer(i_def), parameter, public :: DOUBLE_LEVEL = 734
+  integer(i_def), parameter, public :: WITH_LEVEL_ABOVE_TOP = 5811
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> @brief All extrusion implementations inherit from this class.
@@ -163,6 +164,25 @@ module extrusion_mod
     module procedure double_level_extrusion_constructor
   end interface double_level_extrusion_type
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> @brief Makes an extrusion with an additional level above the model top
+  !> from an existing extrusion. This is an extrusion which has the same levels
+  !> as the original extrusion, but with an additional level above the top of
+  !> the model domain.
+  !>
+  type, public, extends(extrusion_type) :: extrusion_with_level_above_top_type
+    private
+
+    class(extrusion_type), pointer :: base_extrusion
+
+  contains
+    private
+    procedure, public :: extrude => extrude_with_level_above_top
+  end type extrusion_with_level_above_top_type
+
+  interface extrusion_with_level_above_top_type
+    module procedure extrusion_with_level_above_top_constructor
+  end interface extrusion_with_level_above_top_type
 
 contains
 
@@ -509,6 +529,59 @@ contains
     end do
 
   end subroutine double_level_extrude
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> @brief Creates an extrusion_with_level_above_top_type object.
+  !> @param[in] extrusion An existing extrusion_type object.
+  !> @return New extrusion_with_level_above_top_type object.
+  function extrusion_with_level_above_top_constructor( extrusion ) result(new)
+
+    implicit none
+
+    class(extrusion_type), target, intent(in) :: extrusion
+    type(extrusion_with_level_above_top_type) :: new
+    integer(i_def)                            :: nlayers_l_above_top
+
+    nlayers_l_above_top = extrusion%number_of_layers + 1
+
+    call new%extrusion_constructor( extrusion%atmosphere_bottom, &
+                                    extrusion%atmosphere_top,    &
+                                    nlayers_l_above_top, WITH_LEVEL_ABOVE_TOP )
+
+    new%base_extrusion => extrusion
+
+  end function extrusion_with_level_above_top_constructor
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> @brief Finds the nondimensional heights for an
+  !>        extrusion_with_level_above_top from an original extrusion.
+  !>        The levels are those of the original extrusion with an additional
+  !>        extrapolated level.
+  !>
+  !> @param[out] eta Nondimensional vertical coordinate.
+  !>
+  subroutine extrude_with_level_above_top( this, eta )
+
+    implicit none
+
+    class(extrusion_with_level_above_top_type), intent(in)  :: this
+    real(r_def),                                intent(out) :: eta(0:)
+
+    real(r_def)    :: eta_old(0:this%number_of_layers-1)
+    integer(i_def) :: k, nlayers_old
+
+    nlayers_old = this%number_of_layers - 1
+
+    ! Obtain original levels and put them into eta_old
+    call this%base_extrusion%extrude( eta_old )
+
+    eta(:nlayers_old) = eta_old(:)
+    ! Extrapolate last layer.
+    eta(this%number_of_layers) = eta_old(nlayers_old) + &
+                                 (eta_old(nlayers_old) - &
+                                  eta_old(nlayers_old - 1))
+
+  end subroutine extrude_with_level_above_top
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> @brief Initialises the extrusion base class.
